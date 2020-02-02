@@ -146,3 +146,78 @@ RDS 정보 > **엔드포인트** 를 확인 > 카피
 >
 > Action 검색(CMD+Shift+a) > Database Browser를 실행
 
+New Database: 
+
+* Database Name: mysql 
+* User / pw : 설정한 마스터 id/pw (icarus/계정의비번과 같다. )
+
+현재 character_set, collation 확인하여 다르면 기본값 변경
+
+```sql
+show variables like 'c%'; //현재 character_set, collation 확인
+
+//utf8mb4가 아니면 변경해준다.
+alter database mysql
+character set = 'utf8mb4'
+collate = 'utf8mb4_general_ci';
+
+# 타임존 확인
+select @@time_zone, now();
+```
+
+table 생성테스트(한글)
+
+```sql
+create database springbootaws; #Database를 만든다. 
+use springbootaws;
+
+create table test (
+	id bigint(20) not null auto_increment,
+	content varchar(255) default null,
+	primary key(id)
+) engine=InnoDB;
+
+insert into test(content) values('테스트');
+select * from test;
+```
+
+
+
+## EC2에서 MySQL에 접근
+
+```bash
+# mysql client 설치
+sudo yum install mysql 
+
+# mysql -u {user} -p -h {hostname}
+mysql -u icarus -p -h springboot-aws.cygftujktqll.ap-northeast-2.rds.amazonaws.com
+#PW -> 계정비번과 같음
+```
+
+
+
+## AWS Key 발급
+
+* 외부 서비스 접근을 위해, 접근권한을 가진 key를 생성해 사용
+* IAM(Identity and Access Management) : 서비스접근방식과 권한 관리
+* Travis CI -> S3 and CodeDeploy에 접근시 IAM 키를 사용함. 
+
+### 권한 사용자 발급
+
+* IAM > 사용자 > 사용자추가 > "deploy용 사용자명", 프로그래밍방식 선택 > 기존정책직접연결 > s3full, CodeDeployFull 검색/체크 > Tag지정. Name: springboot-aws-travis-deploy 
+* 생성하면, 액세스key ID/비밀 액세스 키 두개를 구할 수 있다. 이것을 TravisCI에 설정저장
+* AWS _Access_key, AWS_Secret_key
+
+### IAM 역할 생성
+
+* EC2가 CodeDeploy를 연동 받을 수 있게 역할을 생성
+* 역할: AWS서비스에만 할당가능 (EC2, CodeDeploy, SQS 등)
+* 사용자: AWS외에 사용할 수 있는 권한 (로컬 PC, IDC서버 등)
+* IAM > 역할 > 역할만들기 > AWS서비스->EC2 > 정책: EC2RoleForA 선택 > 태그 지정 > 생성
+* EC2 > 인스턴스 우클릭: 인스턴스설정 -> IAM역할 연결/바꾸기 > "위의 role 선택" > EC2 재부팅 (해야 반영됨)
+
+## AWS S3 버킷 생성
+
+Simple Storage Service (S3) : 파일서버. 첨부파일 저장, 빌드파일 저장
+
+S3 > 버킷 만들기 > "springboot-aws-build" > 다음:미설정 > 다음:모든 퍼블릭 차단 > 버킷만들기 
