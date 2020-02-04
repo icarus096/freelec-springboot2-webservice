@@ -216,13 +216,75 @@ Simple Storage Service (S3) : 파일서버. 첨부파일 저장, 빌드파일 �
 
 S3 > 버킷 만들기 > "springboot-aws-build" > 다음:미설정 > 다음:모든 퍼블릭 차단 > 버킷만들기 
 
+> 등록한 버킷명을 .travis.yaml 에 반영해 준고 Push하면 빌드된다. 
+>
+> CodeDeploy는 IAM 역할 생성하고 설정 완료해야 빌드가 성공한다. 
 
-
-##### IAM 역할 생성
+##### IAM 역할 생성 / ec2에 연결
 
 * EC2가 CodeDeploy를 연동 받을 수 있게 역할을 생성
 * 역할: AWS서비스에만 할당가능 (EC2, CodeDeploy, SQS 등)
 * 사용자: AWS외에 사용할 수 있는 권한 (로컬 PC, IDC서버 등)
-* IAM > 역할 > 역할만들기 > AWS서비스->EC2 > 정책: EC2RoleForA 선택 > 태그 지정 > 생성
-* EC2 > 인스턴스 우클릭: 인스턴스설정 -> IAM역할 연결/바꾸기 > "위의 role 선택" > EC2 재부팅 (해야 반영됨)
+* role생성: IAM > 역할 > 역할만들기 > AWS서비스->EC2 > 정책: EC2RoleForAWSCodeDeploy 선택 > 태그 지정(Name:ec2-codedeploy-role) > 생성
+* ec2서비스에 등록: EC2 > 인스턴스 우클릭: 인스턴스설정 -> IAM역할 연결/바꾸기 > "위의 role 선택" > EC2 재부팅 (해야 반영됨)
+
+##### CodeDeploy 에이전트 설치
+
+```bash
+$ aws s3 cp s3://aws-codedeploy-ap-northeast-2/latest/install . --region ap-northeast-2
+download ....
+$ chmod +x ./install
+$ sudo ./install auto 
+$ sudo service codedeploy-agent status
+The AWS ... PID xxx
+# 설치중 에러 -> ruby 설치 (sudo yum install ruby)
+```
+
+
+
+##### CodeDeploy를 위한 권한 생성
+
+CodeDeploy -> ec2 접근권한 설정 (AWS 서비스이니 IAM역할 생성)
+
+IAM > 역할 > AWS 서비스 -> CodeDeploy -> 사용사례: CodeDeploy > 다음(권한이 하나임) > Name: codedeploy-role 
+
+##### CodeDeploy 생성
+
+> Code Commit : github와 같은 저장소
+>
+> Code Build : Travis CI와 같은 빌드용 서비스 (규모가 있으면 젠킨스/팀시티가 낫다) 
+>
+> Code Deploy : AWS배포서비스, 대개체가 없다. 오토스케일링그룹배포, 블루그린배포, 롤링배포, EC2 단독배포 등 많은 기능 지원
+
+**CodeDeploy** > 애플리케이션 생성 > 이름: **<u>springboot-aws</u>**, EC2/On-prem > 생성
+
+**배포그룹**생성 > 이름: <u>**springboot-aws-group**</u>, 서비스역할: codedeploy-role > 현재위치 > 환경그룹: Amazon EC2 인스턴스, Tag: Name:springboot-aws > 
+
+배포설정: CodeDeployDefault.AllAtOnce (한번배포시 몇대할지 옵션. 1대니까 한번에 다 배포)
+
+로드밸런서: 활성화 체크해제 > 생성
+
+CodeDeploy 설정은 끝. 
+
+##### Travis CI, S3, CodeDeploy 연동
+
+1. Travis CI Build -> 
+2. s3에 zip 파일 전송 -> 
+3. /home/ec2-user/app/step2/zip 으로 복사되어 압축해제
+
+> Travis CI 설정은 **.travis.yml**로 진행 -> codedeploy 부분 추가
+>
+> CodeDeploy 설정은 **appspec.yml** 으로 진행 -> 최초 배포설정
+
+```yaml
+version: 0.0 #버전명 고정값이다. 
+os: linux
+files:
+  - source:  /
+    destination: /home/ec2-user/app/step2/zip/
+    overwrite: yes
+    
+```
+
+Push > CI/CD 확인
 
