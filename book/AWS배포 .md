@@ -286,5 +286,75 @@ files:
     
 ```
 
-Push > CI/CD 확인
+Push > CI/CD 확인 > 파일이 들어왔는지 보면 된다. 
+
+
+
+### 배포 자동화 구성 (Step2)
+
+Jar 를 배포하여 실행까지 (deploy-step2.sh)
+
+```bash
+#!/bin/bash
+
+REPOSITORY=/home/ec2-user/app/step2
+PROJECT_NAME=freelec-springboot2-webservice
+
+echo "> Build 파일 복사"
+
+cp $REPOSITORY/zip/*.jar $REPOSITORY/
+
+echo "> 현재 구동중인 애플리케이션 pid 확인"
+
+CURRENT_PID=$(pgrep -fl freelec-springboot2-webservice | grep jar | awk '{print $1}')
+
+echo "현재 구동중인 어플리케이션 pid: $CURRENT_PID"
+
+if [ -z "$CURRENT_PID" ]; then
+    echo "> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다."
+else
+    echo "> kill -15 $CURRENT_PID"
+    kill -15 $CURRENT_PID
+    sleep 5
+fi
+
+echo "> 새 어플리케이션 배포"
+
+JAR_NAME=$(ls -tr $REPOSITORY/*.jar | tail -n 1)
+
+echo "> JAR Name: $JAR_NAME"
+
+echo "> $JAR_NAME 에 실행권한 추가"
+
+chmod +x $JAR_NAME
+
+echo "> $JAR_NAME 실행"
+
+nohup java -jar \
+    -Dspring.config.location=classpath:/application.properties,classpath:/application-real.properties,/home/ec2-user/app/application-oauth.properties,/home/ec2-user/app/application-real-db.properties \
+    -Dspring.profiles.active=real \
+    $JAR_NAME > $REPOSITORY/nohup.out 2>&1 &
+```
+
+* Nohup 실행시 CodeDeploy는 무한대기함. 이 이슈 해결을 위해 nohup.out 파일을 표준 입출력용으로 별도 사용. 이렇게 하지 않으면, nohup.out이 생기지 않고 CodeDeploy 로그에 표준 입출력이 출력됨. 꼭 이렇게 redirection해야함. 
+* build 단계 제거 및 몇가지 개선
+
+
+
+##### CodeDeploy 로그 확인
+
+opt/codedeploy-agent/deployment-root 에 로그 보관됨
+
+```bash
+[ec2-user@springboot-aws deployment-root]$ ll
+합계 16
+drwxr-xr-x 3 root root 4096  2월  5 03:43 74ac982b-73f2-43d2-a39b-6fabc8702653 # codedeploy id. 배포한 단위별로 배포파일이 있다. 
+drwxr-xr-x 2 root root 4096  2월  5 03:43 deployment-instructions
+drwxr-xr-x 2 root root 4096  2월  5 03:43 deployment-logs #배포로그. std-id 모두 보관, echo 포함.
+drwxr-xr-x 2 root root 4096  2월  5 03:44 ongoing-deployment
+```
+
+
+
+
 
