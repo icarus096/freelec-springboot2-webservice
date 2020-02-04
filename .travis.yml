@@ -12,6 +12,7 @@ cache:
     - '$HOME/.m2/repository'
     - '$HOME/.gradle'
 
+# master branch에 push되면 수행되는 명령어
 script: "./gradlew clean build"
 
 before_deploy:
@@ -49,4 +50,4 @@ deploy:
 notifications:
   email:
     recipients:
-      - jojoldu@gmail.com
+      - icarus096@gmail.com
