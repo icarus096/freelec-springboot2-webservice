@@ -176,3 +176,53 @@ Git에 PUSH되면 자동으로 테스트와 빌드 수행 (CI - Continous Integr
 >
 > Travis CI 세팅은 이게 끝. 자세한 사항은 **`.travis.yml`** 파일에서 한다. 
 
+notification 에 이메일 변경하고 push 하자. 히스토리 페이지에서 실시간 로그를 이메일로 결과를 받아볼 수 있다. 
+
+
+
+## Travis CI 와 S3 연동
+
+실제 배포는 AWS CodeDeploy 이용한다. S3는 jar 파일 전달용으로 사용.
+
+##### AWS IAM Key 발급
+
+* 외부 서비스 접근을 위해, 접근권한을 가진 key를 생성해 사용
+
+* IAM(Identity and Access Management) : 서비스접근방식과 권한 관리
+
+* Travis CI -> S3 and CodeDeploy에 접근시 IAM 키를 사용함. 
+
+  
+
+##### TravisCI용 권한 사용자 발급
+
+* IAM > 사용자 > 사용자추가 > "deploy용 사용자명", **프로그래밍방식** 선택 > 기존정책직접연결 > **s3full, CodeDeployFull** 검색/체크 > Tag지정. Name: springboot-aws-travis-deploy 
+
+* 생성하면, 액세스key ID/비밀 액세스 키 두개를 구할 수 있다. 이것을 TravisCI에 설정저장
+
+* AWS _Access_key, AWS_Secret_key 저장 (생성시에만 다운로드 가능)
+
+* Travisci project home > more option> setting > Environment Variable 등록
+
+  * AWS_ACCESS_KEY
+
+  * AWS_SECRET_KEY
+
+    
+
+##### AWS S3 버킷 생성
+
+Simple Storage Service (S3) : 파일서버. 첨부파일 저장, 빌드파일 저장
+
+S3 > 버킷 만들기 > "springboot-aws-build" > 다음:미설정 > 다음:모든 퍼블릭 차단 > 버킷만들기 
+
+
+
+##### IAM 역할 생성
+
+* EC2가 CodeDeploy를 연동 받을 수 있게 역할을 생성
+* 역할: AWS서비스에만 할당가능 (EC2, CodeDeploy, SQS 등)
+* 사용자: AWS외에 사용할 수 있는 권한 (로컬 PC, IDC서버 등)
+* IAM > 역할 > 역할만들기 > AWS서비스->EC2 > 정책: EC2RoleForA 선택 > 태그 지정 > 생성
+* EC2 > 인스턴스 우클릭: 인스턴스설정 -> IAM역할 연결/바꾸기 > "위의 role 선택" > EC2 재부팅 (해야 반영됨)
+
