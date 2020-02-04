@@ -1,6 +1,12 @@
-# 스프링부트 AWS - 배포
+# 스프링부트 AWS에 배포해 보자. 
 
+1~5장 스프링부트 서비스 코드 개발, 6~7장 배포환경 구성(AWS)
 
+이제 이들을 조합해 실제 서비스를 배포해 본다. 
+
+## AWS EC2 서버에 프로젝트 배포 (step1)
+
+git에서 clone 받아 build/deploy 하는 스크립트를 만들어보자. 
 
 ```bash
 sudo yum install git
@@ -11,6 +17,8 @@ $ git clone https://github.com/icarus096/freelec-springboot2-webservice.git
 $ ./gladlew test 
 
 //deploy.sh 작성 (STEP1 -> STEP2)
+$ vim ~/app/git/deploy.sh
+
 nohup 으로 java jar 실행
 -> 에러가 난다. 이유는, property 파일이 없어서(커밋 예외 항목으로)
 -> 배포보다 상위 폴더에 파일을 생성해보자. 

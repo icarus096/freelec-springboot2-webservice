@@ -1,4 +1,8 @@
-# 스프링 부트와 AWS로 혼자 구현하는 웹 서비스 - AWS 세팅
+# AWS 환경 구축
+
+스프링 부트와 AWS로 혼자 구현하는 웹 서비스 - AWS 세팅 (Chapter 6,7)
+
+## AWS 장점
 
 * 1년간 대부분 무료
 
@@ -20,7 +24,7 @@
 
 * 서울 리전 (northeast-2)
 * AWS management Console -> ec2 -> 인스턴스 시작 
-* AMI(Amazon Machine Image) - Amazon Linux 1 OS 선택 (CentOS 6 기반, 2는 7)
+* AMI(Amazon Machine Image) - **Amazon Linux 1** OS 선택 (CentOS 6 기반, 2는 7)
   * 아마존이 개발하고 있어 지원이 쉽다, 레드햇 기반, AWS 서비스 상성이 좋음, Amazon 개발 리포지터리 사용으로 yum 이 빠름. 
 * 인스턴스 유형 > 프리티어 > t2.micro
 * 스토리지 추가 > 30GB (프리티어 최대) 
@@ -33,13 +37,13 @@
 
 * ec2 instance > 카테고리: 탄력적IP > 새 주소 할당 > 작업>주소연결 
 * 인스턴스 ID를 연결해 준다. 
-* EIP는 연결하지않으면 과금되니 조심하자. 
+* <u>EIP는 연결하지않으면 과금되니 조심</u>하자. 
 
 ### ssh 접속 (mac)
 
 기본적인 접속 방법
 
-```
+```bash
 ssh -i {pem키위치} {EC2-EIP주소}
 
 # ~/.ssh 로 pem 복사해두면 ssh 실행시자동으로 pem파일을 읽는다. 
@@ -51,18 +55,17 @@ vim ~/.ssh/config
 
 ~/.ssh/config
 
-```shell
+```bash
 Host springboot-aws
   HostName 13.125.76.186
   User ec2-user
   IdentityFile ~/.ssh/iiofirstkeypair.pem
 ```
 
-chmod 700 ~/.ssh/config
-
 접속
 
-```
+```bash
+chmod 700 ~/.ssh/config 
 ssh springboot-aws
 ```
 
@@ -84,17 +87,17 @@ ssh springboot-aws
 
 2. Timezone 변경
 
-   ```
+   ```bash
    sudo rm /etc/localtime
    sudo ln -s /usr/share/zoneinfo/Asia/Seoul /etc/localtime
-   date (확인)
+   date #확인
    ```
 
 3. Hostname 설정
 
-   ```
+   ```bash
    sudo vim /etc/sysconfig/network 
-   HOSTNAME=호스트이름설정
+   HOSTNAME=springboot-aws
    
    sudo reboot
    
@@ -107,6 +110,8 @@ ssh springboot-aws
    
    ```
 
+
+
 ## AWS RDS (Database)
 
 Relational Database Service에는 오라클, MSSQL, PostgreSQL, Aurora등이 있다. 
@@ -115,18 +120,20 @@ MariaDB는 MySQL의 오픈소스 버전으로 MySQL보다 향상된성능, 활�
 
 ### 인스턴스 생성
 
-1. 표준생성 > MariaDB > 프리티어 > 스토리지: 20GB > DB명/유저명 설정
+1. 데이터베이스생성 > 표준생성 > MariaDB > 프리티어 > 스토리지: 20GB > DB명/유저명 설정
 2. 퍼블릭 액세스: 예 (이후 보안그룹에서 IP지정) 
-3. 파라미터 설정 후 > 데이터베이스 -> 수정 > 파라미터그룹을 아래설정한 그룹으로 선택 > 즉시적용
+3. 파라미터 설정 후 > 데이터베이스 -> 수정 > 파라미터그룹 설정 및 선택(하단 참조) > 즉시적용
 4. 재부팅
 
 #### 파라미터 설정
 
-카테고리 > 파라미터 그룹 > 인스턴스버전 선택 > 편집
+카테고리 > 파라미터 그룹 > 생성 > 인스턴스버전 선택 > 편집
 
 1. 타임존(time_zone) > Asia/Seoul 로 설정
 2. Character Set > utf8mb4 (char..로 검색해서 모두 변경해 준다.)
 3. max connection > 150 (프리티어에선 60개 가능하나 넉넉하게)
+
+
 
 ### 접속
 
@@ -134,22 +141,24 @@ RDS 보안그룹에 본인 PC IP를 추가한다.
 
 1. 데이터베이스 보안그룹 선택
 2. 다른 창으로 **EC2에 사용된 보안그룹** 의 그룹ID를 복사 
-3. 복사된 보안그룹ID와 본인PC IP를 **RDS 보안그룹의 인바운드** 로 추가 (MYSQL/Aurora 선택하면 3306자동 선택됨)
+3. 복사된 보안그룹ID(EC2)와 본인PC IP를 **RDS 보안그룹의 인바운드** 로 추가 (MYSQL/Aurora 선택하면 3306자동 선택됨)
 
-##### IntelliJ Database Plugin
 
-디비 클라이언트는 Workbench, SQLyog, Sequal Pro, DataGrip 등이 있다. 
 
-RDS 정보 > **엔드포인트** 를 확인 > 카피 
+##### IntelliJ Database Plugin 설치
+
+디비 클라이언트는 Workbench, SQLyog, Sequal Pro, DataGrip 등이 있다. 여기선 IntelliJ Database Plugin으로 접속 시도한다. 
 
 > Database Navigator > Install
 >
 > Action 검색(CMD+Shift+a) > Database Browser를 실행
 
+AWS RDS 정보 > **엔드포인트** 를 확인 > 카피 (database명, user명 등도 기록해둔다.)
+
 New Database: 
 
-* Database Name: mysql 
-* User / pw : 설정한 마스터 id/pw (icarus/계정의비번과 같다. )
+* Database Name: mysql (혹은 mariadb)
+* User / pw : 설정한 마스터 id/pw 
 
 현재 character_set, collation 확인하여 다르면 기본값 변경
 
@@ -196,7 +205,7 @@ mysql -u icarus -p -h springboot-aws.cygftujktqll.ap-northeast-2.rds.amazonaws.c
 
 
 
-## AWS Key 발급
+## AWS IAM Key 발급
 
 * 외부 서비스 접근을 위해, 접근권한을 가진 key를 생성해 사용
 * IAM(Identity and Access Management) : 서비스접근방식과 권한 관리
